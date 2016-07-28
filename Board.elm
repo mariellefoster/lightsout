@@ -7,52 +7,77 @@ import Svg.Attributes exposing (..)
 import Cell
 import List
 import SvgUtils
+import Random
 
 --To Do--
     -- introduce randomness to initialize board
     -- "winning" state
-    -- welcome page
-    -- css animations
-    -- design levels
     -- counts moves
     -- timer
     -- center of screen
     -- adjust to screen size
+    -- css animations
+
+    -- welcome page
+    
+    -- design levels
+    
 
 main =
-    App.beginnerProgram
-        { model = init -----values----
+    App.program
+        { init = init -----values----
         , update = update
         , view = view
+        , subscriptions = subscriptions
         }
 
--- Model
+-- MODEL
 
 type alias Model = List (List Cell.Model)
 
 
-init : Model
-init = Cell.init Cell.On
-        |> List.repeat 5
-        |> List.repeat 5
+init : (Model, Cmd Msg)
+init = 
+    let
+        model = Cell.init Cell.On
+            |> List.repeat 5
+            |> List.repeat 5
+    in
+        (model, Random.generate NewBoard randomStart)
+
+randomStart : Random.Generator Model
+randomStart = Random.bool 
+                |> Random.map (\b -> if b then Cell.On else Cell.Off) 
+                |> Random.list 5
+                |> Random.list 5
 
 
 neighbors : Coords -> List Coords
 neighbors (i, j) = [(i, j), (i-1, j), (i+1, j), (i, j-1), (i, j+1)]
 
 -- Update
+
 type Msg
     = CellMessage Coords Cell.Msg
+    | NewBoard Model
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update message model = 
-    case message of
-        CellMessage coords cellMsg ->
-            indexedMap (\ (i, j) cellModel -> if (List.member (i, j) (neighbors coords)) then (Cell.update cellMsg cellModel) else cellModel) model
+    let
+        model = 
+            case message of
+                CellMessage coords cellMsg ->
+                    indexedMap (\ (i, j) cellModel -> if (List.member (i, j) (neighbors coords)) then (Cell.update cellMsg cellModel) else cellModel) model
+                NewBoard newModel -> newModel
+    in
+        (model, Cmd.none)
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model = Sub.none
 
 
-
--- View
+-- VIEW
 type alias Coords = (Int, Int)
 
 view : Model -> Html Msg
