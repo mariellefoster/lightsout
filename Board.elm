@@ -8,10 +8,10 @@ import Cell
 import List
 import SvgUtils
 import Random
+import Window
+import Task
 
 --To Do--
-    -- introduce randomness to initialize board
-    -- "winning" state
     -- counts moves
     -- timer
     -- center of screen
@@ -22,7 +22,6 @@ import Random
     
     -- design levels
     
-
 main =
     App.program
         { init = init -----values----
@@ -33,19 +32,31 @@ main =
 
 -- MODEL
 
-type alias Model = List (List Cell.Model)
+type alias Model = 
+    { board : Board
+    , windowSize : Window.Size
+    }
 
+type alias Board = List (List Cell.Model)
 
 init : (Model, Cmd Msg)
 init = 
     let
-        model = Cell.init Cell.On
+        newBoard = Cell.init Cell.On
             |> List.repeat 5
             |> List.repeat 5
+        size = { width = 800, height = 800 }
+        model = { board = newBoard, windowSize = size }
+        randomStartCmd = Random.generate NewBoard randomStart
+        windowSizeCmd = getWindowSize
+        cmds = Cmd.batch [randomStartCmd, windowSizeCmd]
     in
-        (model, Random.generate NewBoard randomStart)
+        (model, cmds)
 
-randomStart : Random.Generator Model
+getWindowSize : Cmd Msg
+getWindowSize = Task.perform SizeUpdateFailure NewWindowSize Window.size
+
+randomStart : Random.Generator Board
 randomStart = Random.bool 
                 |> Random.map (\b -> if b then Cell.On else Cell.Off) 
                 |> Random.list 5
@@ -55,22 +66,36 @@ randomStart = Random.bool
 neighbors : Coords -> List Coords
 neighbors (i, j) = [(i, j), (i-1, j), (i+1, j), (i, j-1), (i, j+1)]
 
+
+isWon : Board -> Bool
+isWon board = not (List.member Cell.On (List.concat board))
+
 -- Update
 
 type Msg
     = CellMessage Coords Cell.Msg
-    | NewBoard Model
+    | NewBoard Board
+    | NewWindowSize Window.Size
+    | SizeUpdateFailure String
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update message model = 
     let
-        model = 
+        newModel = 
             case message of
+                NewBoard newBoard -> { model | board = newBoard }                
                 CellMessage coords cellMsg ->
-                    indexedMap (\ (i, j) cellModel -> if (List.member (i, j) (neighbors coords)) then (Cell.update cellMsg cellModel) else cellModel) model
-                NewBoard newModel -> newModel
+                    { model | board = 
+                        (indexedMap (\ (i, j) cellModel -> 
+                            if (List.member (i, j) (neighbors coords)) then 
+                                (Cell.update cellMsg cellModel) 
+                            else 
+                                cellModel) model.board) 
+                    }
+                NewWindowSize newWindowSize -> { model | windowSize = newWindowSize }
+                _ -> model
     in
-        (model, Cmd.none)
+        (newModel, Cmd.none)
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
@@ -85,12 +110,14 @@ view model =
     let
         size = toString (Cell.size * 5)
     in
-        svg [viewBox ("0 0 " ++ size ++ " " ++ size), width "500px"] [(svgView model)]
-
+        if not (isWon model.board) then
+            svg [viewBox ("0 0 " ++ size ++ " " ++ size), width "500px"] [(svgView model)]
+        else
+            text "You won! <3"
 svgView : Model -> Svg Msg
 svgView model =
     let 
-        nodes = indexedMap renderCell model
+        nodes = indexedMap renderCell model.board
         flattenedNodes = List.concat nodes
     in
         g [] flattenedNodes
