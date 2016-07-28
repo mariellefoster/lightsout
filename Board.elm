@@ -1,6 +1,7 @@
-import Html exposing (Html)
+import Html exposing (Html, div)
 import Html.App as App
 import Html.Events exposing (onClick)
+import Html.Attributes
 import Svg exposing (..)
 import Svg.Attributes as SA
 import Svg.Attributes exposing (..)
@@ -10,6 +11,7 @@ import SvgUtils
 import Random
 import Window
 import Task
+import Debug
 
 --To Do--
     -- counts moves
@@ -99,21 +101,37 @@ update message model =
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
-subscriptions model = Sub.none
+subscriptions model = Window.resizes NewWindowSize
 
 
 -- VIEW
 type alias Coords = (Int, Int)
 
 view : Model -> Html Msg
-view model =
+view ({board, windowSize} as model) =
     let
-        size = toString (Cell.size * 5)
+        baseSize = (Cell.size * 5)
+        minSize = (Basics.min windowSize.width windowSize.height) |> toFloat
+        scale = minSize / baseSize
+                |> Debug.log "scale"
+        size = (toString minSize)
+        svgTree =
+            svgView model
+            |> SvgUtils.scale scale
+
+        mainDivStyle =
+            Html.Attributes.style 
+            [ ("margin", "auto")
+            , ("position", "relative")
+            , ("width", size ++ "px")
+            ]
     in
-        if not (isWon model.board) then
-            svg [viewBox ("0 0 " ++ size ++ " " ++ size), width "500px"] [(svgView model)]
+        if not (isWon board) then
+            div [mainDivStyle]
+            [ svg [viewBox ("0 0 " ++ size ++ " " ++ size)] [svgTree] ]
         else
             text "You won! <3"
+
 svgView : Model -> Svg Msg
 svgView model =
     let 
