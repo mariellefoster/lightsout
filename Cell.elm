@@ -1,13 +1,9 @@
 module Cell exposing (..)
 
-import Html exposing (Html)
+import Html exposing (Html, div)
+import Html.Attributes exposing (style)
 import Html.App as App
 import Html.Events exposing (onClick)
-import Svg exposing (..)
-import Svg.Attributes as SA
-import Svg.Attributes exposing (..)
-
-
 
 main =
     App.beginnerProgram
@@ -23,9 +19,6 @@ type alias Model = Light
 
 init : Light -> Model
 init l = l
-
---init : Model
---init = On
 
 -- Update
 type Msg
@@ -44,21 +37,19 @@ size = 100
 
 view : Model -> Html Msg
 view model =
-    svg [viewBox "0 0 100 100", width "100px"] [(svgView model)]
-
-svgView : Model -> Svg Msg
-svgView model =
     let
         color =
             case model of
                 On -> "#FFFF99"
                 Off -> "grey"
+        divStyle =
+            style
+                [ ("background-color", color)
+                , ("height", "95%")
+                , ("width", "95%")
+                , ("border-radius", "15px")
+                ]
     in
-        --
-        rect [ x "0", y "0", rx "15", ry "15", width (toString size)
-             , height (toString size)
-             , SA.style ("fill: " ++ color ++ "; stroke: white; stroke-width: 10")
-             , onClick Toggle
-             ] []
+       div [ divStyle, onClick Toggle ] []
 
 
