@@ -49,12 +49,12 @@ init =
             |> List.repeat 5
             |> List.repeat 5
         size = { width = 800, height = 800 }
-        timer, timerCmd = Timer.init
+        (timer, timerCmd) = Timer.init
         model = { board = newBoard, windowSize = size, moves = 0, timer = timer }
         randomStartCmd = Random.generate NewBoard randomStart
         windowSizeCmd = getWindowSize
 
-        cmds = Cmd.batch [randomStartCmd, windowSizeCmd, timerCmd]
+        cmds = Cmd.batch [randomStartCmd, windowSizeCmd, (Cmd.map TimerMessage timerCmd)]
     in
         (model, cmds)
 
@@ -82,31 +82,40 @@ type Msg
     | NewBoard Board
     | NewWindowSize Window.Size
     | SizeUpdateFailure String
+    | TimerMessage Timer.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update message model = 
-    let
-        newModel = 
-            case message of
-                NewBoard newBoard -> { model | board = newBoard, moves = 0 }                
-                CellMessage coords cellMsg ->
-                    { model 
-                        | board = 
-                            (indexedMap (\ (i, j) cellModel -> 
-                                if (List.member (i, j) (neighbors coords)) then 
-                                    (Cell.update cellMsg cellModel) 
-                                else 
-                                    cellModel) model.board)
-                        , moves = model.moves + 1
-                    }
-                NewWindowSize newWindowSize -> { model | windowSize = newWindowSize }
-                _ -> model
-    in
-        (newModel, Cmd.none)
+    case message of
+        NewBoard newBoard -> ({ model | board = newBoard, moves = 0 }, Cmd.none)            
+        CellMessage coords cellMsg ->
+            ({ model 
+                | board = 
+                    (indexedMap (\ (i, j) cellModel -> 
+                        if (List.member (i, j) (neighbors coords)) then 
+                            (Cell.update cellMsg cellModel) 
+                        else 
+                            cellModel) model.board)
+                , moves = model.moves + 1
+            }, Cmd.none)
+        NewWindowSize newWindowSize -> ({ model | windowSize = newWindowSize }, Cmd.none)
+        TimerMessage message -> 
+            let 
+                (newTimer, cmd) = Timer.update message model.timer
+            in
+                ({model | timer = newTimer}, Cmd.map TimerMessage cmd)
+        SizeUpdateFailure _ -> (model, Cmd.none)
+
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
-subscriptions model = Window.resizes NewWindowSize
+subscriptions {timer} = 
+    let timerSubscription = 
+        timer
+            |> Timer.subscriptions
+            |> Sub.map TimerMessage
+    in 
+        Sub.batch [Window.resizes NewWindowSize, timerSubscription]
 
 
 -- VIEW
@@ -135,11 +144,16 @@ view ({board, windowSize, moves, timer} as model) =
         moveDivStyle =
             Html.Attributes.style
             [ ("height", (toString moveDivHeight)++"px") ]
+        timerView = 
+            timer
+                |> Timer.view
+                |> App.map TimerMessage
+
     in
         if not (isWon board) then
             div [mainDivStyle]
             [ div [] [text ("Moves: " ++ (toString moves))]
-            , div [] [Timer.view timer]
+            , div [] [timerView]
             , svg [viewBox ("0 0 " ++ size ++ " " ++ size)] [svgTree] ]
         else
             text "You won! <3"

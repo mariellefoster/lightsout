@@ -32,9 +32,6 @@ getStartTime : Cmd Msg
 getStartTime = Task.perform TimeUpdateFailure StartTime Time.now
 
 
-
-
-
 -- UPDATE
 
 type Msg
@@ -47,10 +44,10 @@ update message ({startTime, currentTime} as model) =
     let newModel =
         case message of
             Tick newTime ->
-                (Debug.log ("got a tick" ++ (toString newTime))) {model | currentTime = newTime}
+                {model | currentTime = newTime}
             StartTime startTime ->
-                Debug.log "got a start" {model | startTime = startTime}
-            _ -> Debug.log "got an error" model
+               {startTime = startTime, currentTime = startTime}
+            _ -> model
     in
         (newModel, Cmd.none)
 
@@ -63,21 +60,18 @@ subscriptions model =
 
 niceTimeDisplay : Time -> String
 niceTimeDisplay time = 
-    if time < 0 then 
-        " "
-    else
-        let seconds = time
-                    |> Time.inSeconds 
-                    |> round
-                    |> (\ x -> x % 60)
-                    |> toString
-                    |> String.padLeft 2 '0'
-            minutes = time
-                    |> Time.inMinutes
-                    |> floor
-                    |> toString
-        in
-        minutes ++ ":" ++ seconds
+    let seconds = time
+                |> Time.inSeconds 
+                |> round
+                |> (\ x -> x % 60)
+                |> toString
+                |> String.padLeft 2 '0'
+        minutes = time
+                |> Time.inMinutes
+                |> floor
+                |> toString
+    in
+    minutes ++ ":" ++ seconds
 
 view : Model -> Html Msg
 view model = model
