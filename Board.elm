@@ -12,6 +12,7 @@ import Random
 import Window
 import Task
 import Debug
+import Timer
 
 --To Do--
     -- counts moves
@@ -37,6 +38,7 @@ main =
 type alias Model = 
     { board : Board
     , windowSize : Window.Size
+    , moves : Int
     }
 
 type alias Board = List (List Cell.Model)
@@ -48,7 +50,7 @@ init =
             |> List.repeat 5
             |> List.repeat 5
         size = { width = 800, height = 800 }
-        model = { board = newBoard, windowSize = size }
+        model = { board = newBoard, windowSize = size, moves = 0 }
         randomStartCmd = Random.generate NewBoard randomStart
         windowSizeCmd = getWindowSize
         cmds = Cmd.batch [randomStartCmd, windowSizeCmd]
@@ -85,14 +87,16 @@ update message model =
     let
         newModel = 
             case message of
-                NewBoard newBoard -> { model | board = newBoard }                
+                NewBoard newBoard -> { model | board = newBoard, moves = 0 }                
                 CellMessage coords cellMsg ->
-                    { model | board = 
-                        (indexedMap (\ (i, j) cellModel -> 
-                            if (List.member (i, j) (neighbors coords)) then 
-                                (Cell.update cellMsg cellModel) 
-                            else 
-                                cellModel) model.board) 
+                    { model 
+                        | board = 
+                            (indexedMap (\ (i, j) cellModel -> 
+                                if (List.member (i, j) (neighbors coords)) then 
+                                    (Cell.update cellMsg cellModel) 
+                                else 
+                                    cellModel) model.board)
+                        , moves = model.moves + 1
                     }
                 NewWindowSize newWindowSize -> { model | windowSize = newWindowSize }
                 _ -> model
@@ -108,13 +112,15 @@ subscriptions model = Window.resizes NewWindowSize
 type alias Coords = (Int, Int)
 
 view : Model -> Html Msg
-view ({board, windowSize} as model) =
+view ({board, windowSize, moves} as model) =
     let
         baseSize = (Cell.size * 5)
-        minSize = (Basics.min windowSize.width windowSize.height) |> toFloat
+        moveDivHeight = 20
+        minSize = (Basics.min windowSize.width windowSize.height) - moveDivHeight |> toFloat
         scale = minSize / baseSize
                 |> Debug.log "scale"
         size = (toString minSize)
+        
         svgTree =
             svgView model
             |> SvgUtils.scale scale
@@ -125,10 +131,14 @@ view ({board, windowSize} as model) =
             , ("position", "relative")
             , ("width", size ++ "px")
             ]
+        moveDivStyle =
+            Html.Attributes.style
+            [ ("height", (toString moveDivHeight)++"px") ]
     in
         if not (isWon board) then
             div [mainDivStyle]
-            [ svg [viewBox ("0 0 " ++ size ++ " " ++ size)] [svgTree] ]
+            [ div [] [text ("Moves: " ++ (toString moves))]
+            , svg [viewBox ("0 0 " ++ size ++ " " ++ size)] [svgTree] ]
         else
             text "You won! <3"
 
