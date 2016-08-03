@@ -17,8 +17,6 @@ import Timer
 --To Do--
     -- counts moves
     -- timer
-    -- center of screen
-    -- adjust to screen size
     -- css animations
 
     -- welcome page
@@ -39,6 +37,7 @@ type alias Model =
     { board : Board
     , windowSize : Window.Size
     , moves : Int
+    , timer : Timer.Model
     }
 
 type alias Board = List (List Cell.Model)
@@ -50,10 +49,12 @@ init =
             |> List.repeat 5
             |> List.repeat 5
         size = { width = 800, height = 800 }
-        model = { board = newBoard, windowSize = size, moves = 0 }
+        timer, timerCmd = Timer.init
+        model = { board = newBoard, windowSize = size, moves = 0, timer = timer }
         randomStartCmd = Random.generate NewBoard randomStart
         windowSizeCmd = getWindowSize
-        cmds = Cmd.batch [randomStartCmd, windowSizeCmd]
+
+        cmds = Cmd.batch [randomStartCmd, windowSizeCmd, timerCmd]
     in
         (model, cmds)
 
@@ -112,7 +113,7 @@ subscriptions model = Window.resizes NewWindowSize
 type alias Coords = (Int, Int)
 
 view : Model -> Html Msg
-view ({board, windowSize, moves} as model) =
+view ({board, windowSize, moves, timer} as model) =
     let
         baseSize = (Cell.size * 5)
         moveDivHeight = 20
@@ -138,6 +139,7 @@ view ({board, windowSize, moves} as model) =
         if not (isWon board) then
             div [mainDivStyle]
             [ div [] [text ("Moves: " ++ (toString moves))]
+            , div [] [Timer.view timer]
             , svg [viewBox ("0 0 " ++ size ++ " " ++ size)] [svgTree] ]
         else
             text "You won! <3"
