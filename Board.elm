@@ -125,10 +125,8 @@ type alias Coords = (Int, Int)
 view : Model -> Html Msg
 view ({board, windowSize, moves, timer} as model) =
     let
-        baseSize = (Cell.size * 5)
         infoDivHeight = 80
         minSize = (Basics.min windowSize.width windowSize.height) - infoDivHeight |> toFloat
-        scale = minSize / baseSize
         size = (toString minSize)
         lightCellSize = toString (minSize / 5)
         cellStyle =

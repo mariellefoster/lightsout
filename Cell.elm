@@ -1,18 +1,9 @@
 module Cell exposing (..)
 
-import Html exposing (Html, div, section, figure, node)
-import Html.Attributes exposing (style, id, class, rel, href)
+import Html exposing (Html, div, section, figure)
+import Html.Attributes exposing (style, id, class)
 
-import Html.App as App
 import Html.Events exposing (onClick)
-
-
-main =
-    App.beginnerProgram
-        { model = init On
-        , update = update
-        , view = view
-        }
 
 -- Model
 type Light = On | Off
@@ -32,10 +23,7 @@ update message model =
         On -> Off
         Off -> On
 
-
 -- View
-
-size = 100
 
 view : Model -> Html Msg
 view model =
@@ -55,14 +43,9 @@ view model =
                 ]
     in
        section [class "container", onClick Toggle ] 
-               [ css "style.css"
-               , div
+               [ div
                     [id "light", class lightClass]
                     [ figure [class "on"] []
                     , figure [class "off"] []
                     ]
                ]
-
-css : String -> Html a
-css path =
-  node "link" [ rel "stylesheet", href path ] []
