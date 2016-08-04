@@ -1,9 +1,11 @@
 module Cell exposing (..)
 
-import Html exposing (Html, div)
-import Html.Attributes exposing (style)
+import Html exposing (Html, div, section, figure, node)
+import Html.Attributes exposing (style, id, class, rel, href)
+
 import Html.App as App
 import Html.Events exposing (onClick)
+
 
 main =
     App.beginnerProgram
@@ -38,18 +40,29 @@ size = 100
 view : Model -> Html Msg
 view model =
     let
-        color =
+        lightClass =
+            --case model of
+            --    On -> "#FFFF99"
+            --    Off -> "grey"
             case model of
-                On -> "#FFFF99"
-                Off -> "grey"
+                On -> ""
+                Off -> "flipped"
         divStyle =
             style
-                [ ("background-color", color)
-                , ("height", "95%")
+                [ ("height", "95%")
                 , ("width", "95%")
                 , ("border-radius", "15px")
                 ]
     in
-       div [ divStyle, onClick Toggle ] []
+       section [class "container", onClick Toggle ] 
+               [ css "style.css"
+               , div
+                    [id "light", class lightClass]
+                    [ figure [class "on"] []
+                    , figure [class "off"] []
+                    ]
+               ]
 
-
+css : String -> Html a
+css path =
+  node "link" [ rel "stylesheet", href path ] []
