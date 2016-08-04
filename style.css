@@ -18,8 +18,8 @@ div#info {
 }
 
 .container {
-    width: 200px;
-    height: 260px;
+    width: 95%;
+    height: 95%;
     position: relative;
     perspective: 800px;
 }
@@ -29,7 +29,7 @@ div#info {
     height: 100%;
     position: absolute;
     transform-style: preserve-3d;
-    transition: 1s;
+    transition: 0.3s;
 }
 
 #light figure {
@@ -40,14 +40,15 @@ div#info {
     height: 100%;
     backface-visibility: hidden;
     transform-origin:50% 50%;
+    border-radius: 15px;
 }
 
 #light .on {
-  background: red;
+  background: #FFFF99;
 }
 
 #light .off {
-  background: blue;
+  background: grey;
   transform: rotateY( 180deg );
 }
 
