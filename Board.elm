@@ -1,10 +1,7 @@
-import Html exposing (Html, div)
+import Html exposing (Html, div, table, tr, td, text)
 import Html.App as App
 import Html.Events exposing (onClick)
-import Html.Attributes
-import Svg exposing (..)
-import Svg.Attributes as SA
-import Svg.Attributes exposing (..)
+import Html.Attributes exposing (style)
 import Cell
 import List
 import SvgUtils
@@ -20,9 +17,9 @@ import Timer
     -- css animations
 
     -- welcome page
-    
+
     -- design levels
-    
+
 main =
     App.program
         { init = init -----values----
@@ -33,7 +30,7 @@ main =
 
 -- MODEL
 
-type alias Model = 
+type alias Model =
     { board : Board
     , windowSize : Window.Size
     , moves : Int
@@ -43,7 +40,7 @@ type alias Model =
 type alias Board = List (List Cell.Model)
 
 init : (Model, Cmd Msg)
-init = 
+init =
     let
         newBoard = Cell.init Cell.On
             |> List.repeat 5
@@ -62,8 +59,8 @@ getWindowSize : Cmd Msg
 getWindowSize = Task.perform SizeUpdateFailure NewWindowSize Window.size
 
 randomStart : Random.Generator Board
-randomStart = Random.bool 
-                |> Random.map (\b -> if b then Cell.On else Cell.Off) 
+randomStart = Random.bool
+                |> Random.map (\b -> if b then Cell.On else Cell.Off)
                 |> Random.list 5
                 |> Random.list 5
 
@@ -85,22 +82,22 @@ type Msg
     | TimerMessage Timer.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update message model = 
+update message model =
     case message of
-        NewBoard newBoard -> ({ model | board = newBoard, moves = 0 }, Cmd.none)            
+        NewBoard newBoard -> ({ model | board = newBoard, moves = 0 }, Cmd.none)
         CellMessage coords cellMsg ->
-            ({ model 
-                | board = 
-                    (indexedMap (\ (i, j) cellModel -> 
-                        if (List.member (i, j) (neighbors coords)) then 
-                            (Cell.update cellMsg cellModel) 
-                        else 
+            ({ model
+                | board =
+                    (indexedMap (\ (i, j) cellModel ->
+                        if (List.member (i, j) (neighbors coords)) then
+                            (Cell.update cellMsg cellModel)
+                        else
                             cellModel) model.board)
                 , moves = model.moves + 1
             }, Cmd.none)
         NewWindowSize newWindowSize -> ({ model | windowSize = newWindowSize }, Cmd.none)
-        TimerMessage message -> 
-            let 
+        TimerMessage message ->
+            let
                 (newTimer, cmd) = Timer.update message model.timer
             in
                 ({model | timer = newTimer}, Cmd.map TimerMessage cmd)
@@ -109,12 +106,12 @@ update message model =
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
-subscriptions {timer} = 
-    let timerSubscription = 
+subscriptions {timer} =
+    let timerSubscription =
         timer
             |> Timer.subscriptions
             |> Sub.map TimerMessage
-    in 
+    in
         Sub.batch [Window.resizes NewWindowSize, timerSubscription]
 
 
@@ -125,60 +122,74 @@ view : Model -> Html Msg
 view ({board, windowSize, moves, timer} as model) =
     let
         baseSize = (Cell.size * 5)
-        moveDivHeight = 20
-        minSize = (Basics.min windowSize.width windowSize.height) - moveDivHeight |> toFloat
+        infoDivHeight = 80
+        minSize = (Basics.min windowSize.width windowSize.height) - infoDivHeight |> toFloat
         scale = minSize / baseSize
-                |> Debug.log "scale"
         size = (toString minSize)
-        
-        svgTree =
-            svgView model
-            |> SvgUtils.scale scale
+        lightCellSize = toString (minSize / 5)
+        cellStyle =
+            style
+                [ ("width", lightCellSize ++ "px")
+                , ("height", lightCellSize ++ "px")
+                ]
+
+        rows = List.indexedMap
+                (\i row -> tr [] (row |> List.indexedMap (\j cellModel -> td [ cellStyle ] [ (renderCell (i, j) cellModel) ])))
+                model.board
+        lightsTable = table [] rows
 
         mainDivStyle =
-            Html.Attributes.style 
-            [ ("margin", "auto")
-            , ("position", "relative")
-            , ("width", size ++ "px")
+            style
+                [ ("margin", "auto")
+                , ("position", "relative")
+                , ("width", size ++ "px")
+                ]
+        containerStyle =
+            style
+                [ ("margin", "auto")
+                , ("position", "relative")
+                , ("display", "flex")
+                , ("flex-direction", "column")
+                , ("height", "100vh")
+                ]
+        infoDivStyle = style
+                [ ("height", (toString infoDivHeight) ++ "px")
+                , ("display", "flex")
+                ]
+        innerDivStyle = style
+            [ ("padding", "10px")
+            , ("text-transform", "uppercase")
+            , ("font-family", "sans-serif")
+            , ("font-size", "20px")
             ]
-        moveDivStyle =
-            Html.Attributes.style
-            [ ("height", (toString moveDivHeight)++"px") ]
-        timerView = 
+
+        innerDiv content =
+            div [ innerDivStyle ] content
+        timerView =
             timer
                 |> Timer.view
                 |> App.map TimerMessage
-
+        infoDiv = div [ infoDivStyle ]
+                      [ innerDiv [ text ("Time: "), timerView ]
+                      , innerDiv [ text ("Moves: " ++ (toString moves)) ]
+                      ]
     in
-        if not (isWon board) then
-            div [mainDivStyle]
-            [ div [] [text ("Moves: " ++ (toString moves))]
-            , div [] [timerView]
-            , svg [viewBox ("0 0 " ++ size ++ " " ++ size)] [svgTree] ]
-        else
-            text "You won! <3"
+        div [ mainDivStyle ]
+            [ div [ containerStyle ]
+                  [ infoDiv
+                  , div [ style [ ("flex-grow", "100") ] ] [ lightsTable ]
+                  ]
+            ]
 
-svgView : Model -> Svg Msg
-svgView model =
-    let 
-        nodes = indexedMap renderCell model.board
-        flattenedNodes = List.concat nodes
-    in
-        g [] flattenedNodes
- 
-renderCell : Coords -> Cell.Model -> Svg Msg
+renderCell : Coords -> Cell.Model -> Html Msg
 renderCell (i,j) cellModel =
-    cellModel 
-        |> Cell.svgView 
-        |> SvgUtils.translate (Cell.size*i) (Cell.size*j)
+    cellModel
+        |> Cell.view
         |> App.map (CellMessage (i, j))
-            
+
 
 
 indexedMap : (Coords -> a -> b) -> List (List a) -> List (List b)
 indexedMap f board =
-    board |> List.indexedMap (\ i row -> row |> List.indexedMap (\ j cellModel -> f (i, j) cellModel))
-
-
-
-
+    board
+        |> List.indexedMap (\ i row -> row |> List.indexedMap (\ j cellModel -> f (i, j) cellModel))
