@@ -1,7 +1,7 @@
-import Html exposing (Html, div, table, tr, td, text)
+import Html exposing (Html, div, table, tr, td, text, node)
 import Html.App as App
 import Html.Events exposing (onClick)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (style, id, class, rel, href)
 import Cell
 import List
 import SvgUtils
@@ -72,6 +72,11 @@ neighbors (i, j) = [(i, j), (i-1, j), (i+1, j), (i, j-1), (i, j+1)]
 isWon : Board -> Bool
 isWon board = not (List.member Cell.On (List.concat board))
 
+indexedMap : (Coords -> a -> b) -> List (List a) -> List (List b)
+indexedMap f board =
+    board
+        |> List.indexedMap (\ i row -> row |> List.indexedMap (\ j cellModel -> f (i, j) cellModel))
+
 -- Update
 
 type Msg
@@ -138,47 +143,22 @@ view ({board, windowSize, moves, timer} as model) =
                 model.board
         lightsTable = table [] rows
 
-        mainDivStyle =
-            style
-                [ ("margin", "auto")
-                , ("position", "relative")
-                , ("width", size ++ "px")
-                ]
-        containerStyle =
-            style
-                [ ("margin", "auto")
-                , ("position", "relative")
-                , ("display", "flex")
-                , ("flex-direction", "column")
-                , ("height", "100vh")
-                ]
-        infoDivStyle = style
-                [ ("height", (toString infoDivHeight) ++ "px")
-                , ("display", "flex")
-                ]
-        innerDivStyle = style
-            [ ("padding", "10px")
-            , ("text-transform", "uppercase")
-            , ("font-family", "sans-serif")
-            , ("font-size", "20px")
-            ]
-
-        innerDiv content =
-            div [ innerDivStyle ] content
+        mainDivStyle = style [ ("width", size ++ "px") ]
+        infoDivStyle = style [ ("height", (toString infoDivHeight) ++ "px") ]
+        innerDiv content = div [ class "infosection" ] content
         timerView =
             timer
                 |> Timer.view
                 |> App.map TimerMessage
-        infoDiv = div [ infoDivStyle ]
+        infoDiv = div [ id "info", infoDivStyle ]
                       [ innerDiv [ text ("Time: "), timerView ]
                       , innerDiv [ text ("Moves: " ++ (toString moves)) ]
                       ]
     in
-        div [ mainDivStyle ]
-            [ div [ containerStyle ]
-                  [ infoDiv
-                  , div [ style [ ("flex-grow", "100") ] ] [ lightsTable ]
-                  ]
+        div [ id "main", mainDivStyle ]
+            [ css "style.css"
+            , infoDiv
+            , div [ style [ ("flex-grow", "100") ] ] [ lightsTable ]
             ]
 
 renderCell : Coords -> Cell.Model -> Html Msg
@@ -189,7 +169,6 @@ renderCell (i,j) cellModel =
 
 
 
-indexedMap : (Coords -> a -> b) -> List (List a) -> List (List b)
-indexedMap f board =
-    board
-        |> List.indexedMap (\ i row -> row |> List.indexedMap (\ j cellModel -> f (i, j) cellModel))
+css : String -> Html a
+css path =
+  node "link" [ rel "stylesheet", href path ] []
