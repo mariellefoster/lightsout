@@ -4,7 +4,6 @@ import Html.Events exposing (onClick)
 import Html.Attributes exposing (style, id, class, rel, href)
 import Cell
 import List
-import SvgUtils
 import Random
 import Window
 import Task
