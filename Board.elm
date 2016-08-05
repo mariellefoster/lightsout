@@ -20,23 +20,33 @@ type alias Board = List (List Cell.Model)
 
 type alias Model = { board: Board, moves: Int }
 
-init : (Model, Cmd Msg)
-init =
+type alias DifficultyLevel = Int
+
+init : DifficultyLevel -> (Model, Cmd Msg)
+init difficulty =
     let
-        board = Cell.init Cell.On
-            |> List.repeat 5
-            |> List.repeat 5
-        randomStartCmd = Random.generate NewBoard randomStart
-        model = { board = board, moves = 0 }
+        randomStartCmd = Random.generate NewBoard (randomStart difficulty)
+        model = { board = emptyBoard, moves = 0 }
     in
         (model, randomStartCmd)
 
-randomStart : Random.Generator Board
-randomStart = 
-    Random.bool
-        |> Random.map (\b -> if b then Cell.On else Cell.Off)
-        |> Random.list 5
-        |> Random.list 5
+emptyBoard =
+    Cell.init Cell.Off
+        |> List.repeat 5
+        |> List.repeat 5
+
+randomCoords : Random.Generator Coords
+randomCoords =
+    let
+       randomCoord = Random.int 0 4
+    in
+       Random.pair randomCoord randomCoord
+
+randomStart : DifficultyLevel -> Random.Generator Board
+randomStart difficulty =
+    randomCoords
+        |> Random.list difficulty
+        |> Random.map (List.foldl toggleAt emptyBoard)
 
 
 neighbors : Coords -> List Coords
@@ -51,6 +61,16 @@ indexedMap f board =
     board
         |> List.indexedMap (\ i row -> row |> List.indexedMap (\ j cellModel -> f (i, j) cellModel))
 
+toggleAt : Coords -> Board -> Board
+toggleAt coords board =
+    indexedMap (\ (i, j) cellModel ->
+        if (List.member (i, j) (neighbors coords)) then
+            (Cell.update Cell.Toggle cellModel)
+        else
+            cellModel
+    ) board
+
+
 -- Update
 
 type Msg
@@ -61,17 +81,10 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update message ({board, moves} as model) =
     let newModel =
         case message of
-            NewBoard newBoard -> { model | board = newBoard }
-            ToggleAt coords cellMsg ->
-                { model
-                    | board = indexedMap (\ (i, j) cellModel ->
-                        if (List.member (i, j) (neighbors coords)) then
-                            (Cell.update cellMsg cellModel)
-                        else
-                            cellModel
-                        ) board
-                    , moves = moves + 1
-                }
+            NewBoard newBoard ->
+                { model | board = newBoard }
+            ToggleAt coords _ ->
+                { model | board = toggleAt coords board , moves = moves + 1 }
     in
        (newModel, Cmd.none)
 

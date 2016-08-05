@@ -40,7 +40,7 @@ div#info {
     height: 100%;
     backface-visibility: hidden;
     transform-origin:50% 50%;
-    border-radius: 15px;
+    border-radius: 30%;
 }
 
 #light .on {

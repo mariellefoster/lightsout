@@ -26,20 +26,23 @@ type alias Model =
     { board : Board.Model
     , windowSize : Window.Size
     , timer : Timer.Model
+    , difficulty : Board.DifficultyLevel
     }
 
 init : (Model, Cmd Msg)
 init =
     let
+        difficulty = 1
         size = { width = 800, height = 800 }
-        (newBoard, boardCmd) = Board.init
+        (newBoard, boardCmd) = Board.init difficulty
         (timer, timerCmd) = Timer.init
-        model = 
+        model =
             { board = newBoard
             , windowSize = size
-            , timer = timer 
+            , timer = timer
+            , difficulty = difficulty
             }
-        cmds = Cmd.batch 
+        cmds = Cmd.batch
                 [ (Cmd.map UpdateBoard boardCmd)
                 , (Cmd.map UpdateTimer timerCmd)
                 , getWindowSize
@@ -59,15 +62,25 @@ type Msg
     | SizeUpdateFailure String
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update message model =
+update message ({board, difficulty} as model) =
     case message of
         NewWindowSize newWindowSize -> ({ model | windowSize = newWindowSize }, Cmd.none)
         SizeUpdateFailure _ -> (model, Cmd.none)
         UpdateBoard boardMessage ->
             let
-                (newBoard, cmd) = Board.update boardMessage model.board
+                (boardModel, cmd) = Board.update boardMessage model.board
             in
-                ({model | board = newBoard}, Cmd.map UpdateBoard cmd)
+                if Board.isWon boardModel.board then
+                   let
+                       difficultyAbove = difficulty + 1
+                       (newBoard, boardCmd) = Board.init difficultyAbove
+                       (timer, timerCmd) = Timer.init
+                   in
+                       ({model | board = newBoard, difficulty = difficultyAbove, timer = timer}
+                       , Cmd.batch [ Cmd.map UpdateBoard boardCmd, Cmd.map UpdateTimer timerCmd ]
+                       )
+                else
+                    ({model | board = boardModel}, Cmd.map UpdateBoard cmd)
         UpdateTimer message ->
             let
                 (newTimer, cmd) = Timer.update message model.timer
@@ -88,13 +101,13 @@ subscriptions {timer} =
 -- VIEW
 
 view : Model -> Html Msg
-view ({board, windowSize, timer} as model) =
+view ({board, windowSize, timer, difficulty} as model) =
     let
         infoDivHeight = 80
         minSize = (Basics.min windowSize.width windowSize.height) - infoDivHeight |> toFloat
         lightCellSize = minSize / 5
 
-        boardView = 
+        boardView =
             board
                 |> Board.view lightCellSize
                 |> App.map UpdateBoard
@@ -109,6 +122,7 @@ view ({board, windowSize, timer} as model) =
         infoDiv = div [ id "info", infoDivStyle ]
                       [ innerDiv [ text ("Time: "), timerView ]
                       , innerDiv [ text ("Moves: " ++ (toString board.moves)) ]
+                      , innerDiv [ text ("Difficulty level: " ++ (toString difficulty)) ]
                       ]
     in
         div [ id "main", mainDivStyle ]
