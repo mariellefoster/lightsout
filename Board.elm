@@ -1,67 +1,42 @@
-import Html exposing (Html, div, table, tr, td, text, node)
+module Board exposing (..)
+
+import Html exposing (Html, div, table, tr, td, text)
 import Html.App as App
 import Html.Events exposing (onClick)
-import Html.Attributes exposing (style, id, class, rel, href)
+import Html.Attributes exposing (style)
 import Cell
 import List
 import Random
 import Window
 import Task
-import Debug
 import Timer
 
---To Do--
-    -- counts moves
-    -- timer
-    -- css animations
-
-    -- welcome page
-
-    -- design levels
-
-main =
-    App.program
-        { init = init -----values----
-        , update = update
-        , view = view
-        , subscriptions = subscriptions
-        }
 
 -- MODEL
 
-type alias Model =
-    { board : Board
-    , windowSize : Window.Size
-    , moves : Int
-    , timer : Timer.Model
-    }
+type alias Coords = (Int, Int)
 
 type alias Board = List (List Cell.Model)
+
+type alias Model = { board: Board, moves: Int }
 
 init : (Model, Cmd Msg)
 init =
     let
-        newBoard = Cell.init Cell.On
+        board = Cell.init Cell.On
             |> List.repeat 5
             |> List.repeat 5
-        size = { width = 800, height = 800 }
-        (timer, timerCmd) = Timer.init
-        model = { board = newBoard, windowSize = size, moves = 0, timer = timer }
         randomStartCmd = Random.generate NewBoard randomStart
-        windowSizeCmd = getWindowSize
-
-        cmds = Cmd.batch [randomStartCmd, windowSizeCmd, (Cmd.map TimerMessage timerCmd)]
+        model = { board = board, moves = 0 }
     in
-        (model, cmds)
-
-getWindowSize : Cmd Msg
-getWindowSize = Task.perform SizeUpdateFailure NewWindowSize Window.size
+        (model, randomStartCmd)
 
 randomStart : Random.Generator Board
-randomStart = Random.bool
-                |> Random.map (\b -> if b then Cell.On else Cell.Off)
-                |> Random.list 5
-                |> Random.list 5
+randomStart = 
+    Random.bool
+        |> Random.map (\b -> if b then Cell.On else Cell.Off)
+        |> Random.list 5
+        |> Random.list 5
 
 
 neighbors : Coords -> List Coords
@@ -79,93 +54,54 @@ indexedMap f board =
 -- Update
 
 type Msg
-    = CellMessage Coords Cell.Msg
+    = ToggleAt Coords Cell.Msg
     | NewBoard Board
-    | NewWindowSize Window.Size
-    | SizeUpdateFailure String
-    | TimerMessage Timer.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update message model =
-    case message of
-        NewBoard newBoard -> ({ model | board = newBoard, moves = 0 }, Cmd.none)
-        CellMessage coords cellMsg ->
-            ({ model
-                | board =
-                    (indexedMap (\ (i, j) cellModel ->
+update message ({board, moves} as model) =
+    let newModel =
+        case message of
+            NewBoard newBoard -> { model | board = newBoard }
+            ToggleAt coords cellMsg ->
+                { model
+                    | board = indexedMap (\ (i, j) cellModel ->
                         if (List.member (i, j) (neighbors coords)) then
                             (Cell.update cellMsg cellModel)
                         else
-                            cellModel) model.board)
-                , moves = model.moves + 1
-            }, Cmd.none)
-        NewWindowSize newWindowSize -> ({ model | windowSize = newWindowSize }, Cmd.none)
-        TimerMessage message ->
-            let
-                (newTimer, cmd) = Timer.update message model.timer
-            in
-                ({model | timer = newTimer}, Cmd.map TimerMessage cmd)
-        SizeUpdateFailure _ -> (model, Cmd.none)
+                            cellModel
+                        ) board
+                    , moves = moves + 1
+                }
+    in
+       (newModel, Cmd.none)
 
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
-subscriptions {timer} =
-    let timerSubscription =
-        timer
-            |> Timer.subscriptions
-            |> Sub.map TimerMessage
-    in
-        Sub.batch [Window.resizes NewWindowSize, timerSubscription]
+subscriptions model = Sub.none
 
 
 -- VIEW
-type alias Coords = (Int, Int)
 
-view : Model -> Html Msg
-view ({board, windowSize, moves, timer} as model) =
+view : Float -> Model -> Html Msg
+view cellSize model =
     let
-        infoDivHeight = 80
-        minSize = (Basics.min windowSize.width windowSize.height) - infoDivHeight |> toFloat
-        size = (toString minSize)
-        lightCellSize = toString (minSize / 5)
+        lightCellSize = toString cellSize
         cellStyle =
             style
                 [ ("width", lightCellSize ++ "px")
                 , ("height", lightCellSize ++ "px")
                 ]
-
         rows = List.indexedMap
                 (\i row -> tr [] (row |> List.indexedMap (\j cellModel -> td [ cellStyle ] [ (renderCell (i, j) cellModel) ])))
                 model.board
         lightsTable = table [] rows
 
-        mainDivStyle = style [ ("width", size ++ "px") ]
-        infoDivStyle = style [ ("height", (toString infoDivHeight) ++ "px") ]
-        innerDiv content = div [ class "infosection" ] content
-        timerView =
-            timer
-                |> Timer.view
-                |> App.map TimerMessage
-        infoDiv = div [ id "info", infoDivStyle ]
-                      [ innerDiv [ text ("Time: "), timerView ]
-                      , innerDiv [ text ("Moves: " ++ (toString moves)) ]
-                      ]
     in
-        div [ id "main", mainDivStyle ]
-            [ css "style.css"
-            , infoDiv
-            , div [ style [ ("flex-grow", "100") ] ] [ lightsTable ]
-            ]
+       table [] rows
 
 renderCell : Coords -> Cell.Model -> Html Msg
 renderCell (i,j) cellModel =
     cellModel
         |> Cell.view
-        |> App.map (CellMessage (i, j))
-
-
-
-css : String -> Html a
-css path =
-  node "link" [ rel "stylesheet", href path ] []
+        |> App.map (ToggleAt (i, j))

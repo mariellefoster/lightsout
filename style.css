@@ -21,7 +21,7 @@ div#info {
     width: 95%;
     height: 95%;
     position: relative;
-    perspective: 800px;
+    perspective: 600px;
 }
 
 #light {

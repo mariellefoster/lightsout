@@ -29,9 +29,6 @@ view : Model -> Html Msg
 view model =
     let
         lightClass =
-            --case model of
-            --    On -> "#FFFF99"
-            --    Off -> "grey"
             case model of
                 On -> ""
                 Off -> "flipped"
@@ -42,7 +39,7 @@ view model =
                 , ("border-radius", "15px")
                 ]
     in
-       section [class "container", onClick Toggle ] 
+       section [ class "container", onClick Toggle ] 
                [ div
                     [id "light", class lightClass]
                     [ figure [class "on"] []
