@@ -3,6 +3,8 @@ import Html exposing (Html, div, text, node)
 import Html.Attributes exposing (style, id, class, rel, href)
 import Window
 import Task
+import Time
+import Process
 import Timer
 import Board
 
@@ -53,11 +55,17 @@ init =
 getWindowSize : Cmd Msg
 getWindowSize = Task.perform SizeUpdateFailure NewWindowSize Window.size
 
+newLevelCmd : Board.DifficultyLevel -> Cmd Msg
+newLevelCmd d =
+    Process.sleep (1 * Time.second)
+    |> Task.perform (\_ -> NoOp) (\_ -> NewLevel d)
 -- Update
 
 type Msg
     = UpdateBoard Board.Msg
     | UpdateTimer Timer.Msg
+    | NewLevel Board.DifficultyLevel
+    | NoOp
     | NewWindowSize Window.Size
     | SizeUpdateFailure String
 
@@ -69,23 +77,28 @@ update message ({board, difficulty} as model) =
         UpdateBoard boardMessage ->
             let
                 (boardModel, cmd) = Board.update boardMessage model.board
-            in
+                cmd2 =
                 if Board.isWon boardModel.board then
-                   let
-                       difficultyAbove = difficulty + 1
-                       (newBoard, boardCmd) = Board.init difficultyAbove
-                       (timer, timerCmd) = Timer.init
-                   in
-                       ({model | board = newBoard, difficulty = difficultyAbove, timer = timer}
-                       , Cmd.batch [ Cmd.map UpdateBoard boardCmd, Cmd.map UpdateTimer timerCmd ]
-                       )
+                    newLevelCmd (difficulty + 1)
                 else
-                    ({model | board = boardModel}, Cmd.map UpdateBoard cmd)
+                    Cmd.none
+            in
+                ({model | board = boardModel}, Cmd.batch [ Cmd.map UpdateBoard cmd, cmd2 ])
         UpdateTimer message ->
             let
                 (newTimer, cmd) = Timer.update message model.timer
             in
                 ({model | timer = newTimer}, Cmd.map UpdateTimer cmd)
+        NewLevel difficulty ->
+            let
+                (newBoard, boardCmd) = Board.init difficulty
+                (timer, timerCmd) = Timer.init
+            in
+                ({model | board = newBoard, difficulty = difficulty, timer = timer}
+                , Cmd.batch [ Cmd.map UpdateBoard boardCmd, Cmd.map UpdateTimer timerCmd ]
+                )
+        NoOp -> (model, Cmd.none)
+
 
 
 -- SUBSCRIPTIONS
@@ -128,7 +141,7 @@ view ({board, windowSize, timer, difficulty} as model) =
         div [ id "main", mainDivStyle ]
             [ css "style.css"
             , infoDiv
-            , div [ style [ ("flex-grow", "100") ] ] [ boardView ]
+            , div [ class "board" ] [ boardView ]
             ]
 
 css : String -> Html a
