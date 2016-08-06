@@ -4,7 +4,7 @@ import Html exposing (Html, div, table, tr, td, text)
 import Html.App as App
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (style)
-import Cell
+import Light
 import List
 import Random
 import Window
@@ -16,7 +16,7 @@ import Timer
 
 type alias Coords = (Int, Int)
 
-type alias Board = List (List Cell.Model)
+type alias Board = List (List Light.Model)
 
 type alias Model = { board: Board, moves: Int }
 
@@ -31,7 +31,7 @@ init difficulty =
         (model, randomStartCmd)
 
 emptyBoard =
-    Cell.init Cell.Off
+    Light.init Light.Off
         |> List.repeat 5
         |> List.repeat 5
 
@@ -54,7 +54,7 @@ neighbors (i, j) = [(i, j), (i-1, j), (i+1, j), (i, j-1), (i, j+1)]
 
 
 isWon : Board -> Bool
-isWon board = not (List.member Cell.On (List.concat board))
+isWon board = not (List.member Light.On (List.concat board))
 
 indexedMap : (Coords -> a -> b) -> List (List a) -> List (List b)
 indexedMap f board =
@@ -65,7 +65,7 @@ toggleAt : Coords -> Board -> Board
 toggleAt coords board =
     indexedMap (\ (i, j) cellModel ->
         if (List.member (i, j) (neighbors coords)) then
-            (Cell.update Cell.Toggle cellModel)
+            (Light.update Light.Toggle cellModel)
         else
             cellModel
     ) board
@@ -74,7 +74,7 @@ toggleAt coords board =
 -- Update
 
 type Msg
-    = ToggleAt Coords Cell.Msg
+    = ToggleAt Coords Light.Msg
     | NewBoard Board
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -106,15 +106,15 @@ view cellSize model =
                 , ("height", lightCellSize ++ "px")
                 ]
         rows = List.indexedMap
-                (\i row -> tr [] (row |> List.indexedMap (\j cellModel -> td [ cellStyle ] [ (renderCell (i, j) cellModel) ])))
+                (\i row -> tr [] (row |> List.indexedMap (\j cellModel -> td [ cellStyle ] [ (renderLight (i, j) cellModel) ])))
                 model.board
         lightsTable = table [] rows
 
     in
        table [] rows
 
-renderCell : Coords -> Cell.Model -> Html Msg
-renderCell (i,j) cellModel =
+renderLight : Coords -> Light.Model -> Html Msg
+renderLight (i,j) cellModel =
     cellModel
-        |> Cell.view
+        |> Light.view
         |> App.map (ToggleAt (i, j))

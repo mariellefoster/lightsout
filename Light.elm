@@ -1,4 +1,4 @@
-module Cell exposing (..)
+module Light exposing (..)
 
 import Html exposing (Html, div, section, figure)
 import Html.Attributes exposing (style, id, class)
