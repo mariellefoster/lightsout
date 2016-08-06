@@ -6,12 +6,10 @@ import Html.Attributes exposing (style, id, class)
 import Html.Events exposing (onClick)
 
 -- Model
-type Light = On | Off
+type Model = On | Off
 
-type alias Model = Light
-
-init : Light -> Model
-init l = l
+init : Model
+init = Off
 
 -- Update
 type Msg

@@ -31,7 +31,7 @@ init difficulty =
         (model, randomStartCmd)
 
 emptyBoard =
-    Light.init Light.Off
+    Light.init
         |> List.repeat 5
         |> List.repeat 5
 
