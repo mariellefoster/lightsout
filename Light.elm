@@ -2,16 +2,17 @@ module Light exposing (..)
 
 import Html exposing (Html, div, section, figure)
 import Html.Attributes exposing (style, id, class)
-
 import Html.Events exposing (onClick)
 
--- Model
+-- MODEL
+
 type Model = On | Off
 
 init : Model
 init = Off
 
--- Update
+-- UPDATE
+
 type Msg
     = Toggle
 
@@ -21,7 +22,7 @@ update message model =
         On -> Off
         Off -> On
 
--- View
+-- VIEW
 
 view : Model -> Html Msg
 view model =
