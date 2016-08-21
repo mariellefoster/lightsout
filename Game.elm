@@ -72,7 +72,7 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update message ({board, difficulty} as model) =
     case message of
-        NewWindowSize newWindowSize -> ({ model | windowSize = newWindowSize }, Cmd.none)
+        NewWindowSize newWindowSize -> { model | windowSize = newWindowSize } ! []
         SizeUpdateFailure _ -> (model, Cmd.none)
         UpdateBoard boardMessage ->
             let
@@ -83,21 +83,20 @@ update message ({board, difficulty} as model) =
                 else
                     Cmd.none
             in
-                ({model | board = boardModel}, Cmd.batch [ Cmd.map UpdateBoard cmd, cmd2 ])
+                {model | board = boardModel} ! [ Cmd.map UpdateBoard cmd, cmd2 ]
         UpdateTimer message ->
             let
                 (newTimer, cmd) = Timer.update message model.timer
             in
-                ({model | timer = newTimer}, Cmd.map UpdateTimer cmd)
+                {model | timer = newTimer} ! [ Cmd.map UpdateTimer cmd ]
         NewLevel difficulty ->
             let
                 (newBoard, boardCmd) = Board.init difficulty
                 (timer, timerCmd) = Timer.init
             in
-                ({model | board = newBoard, difficulty = difficulty, timer = timer}
-                , Cmd.batch [ Cmd.map UpdateBoard boardCmd, Cmd.map UpdateTimer timerCmd ]
-                )
-        NoOp -> (model, Cmd.none)
+                {model | board = newBoard, difficulty = difficulty, timer = timer}
+                    ! [ Cmd.map UpdateBoard boardCmd, Cmd.map UpdateTimer timerCmd ]
+        NoOp -> model ! []
 
 
 

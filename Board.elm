@@ -7,9 +7,6 @@ import Html.Attributes exposing (style)
 import Light
 import List
 import Random
-import Window
-import Task
-import Timer
 
 
 -- MODEL
@@ -86,7 +83,7 @@ update message ({board, moves} as model) =
             ToggleAt coords _ ->
                 { model | board = toggleAt coords board , moves = moves + 1 }
     in
-       (newModel, Cmd.none)
+       newModel ! []
 
 
 -- SUBSCRIPTIONS
