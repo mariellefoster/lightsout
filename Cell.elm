@@ -30,7 +30,6 @@ update message model =
         On -> Off
         Off -> On
 
-
 -- View
 
 size = 100
