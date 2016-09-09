@@ -5,6 +5,8 @@ import Html.Attributes exposing (style)
 import Html.App as App
 import Html.Events exposing (onClick)
 
+--Main
+
 main =
     App.beginnerProgram
         { model = init On
@@ -31,8 +33,6 @@ update message model =
         Off -> On
 
 -- View
-
-size = 100
 
 view : Model -> Html Msg
 view model =
