@@ -45,6 +45,7 @@ init =
         newBoard = Cell.init Cell.On
             |> List.repeat 5
             |> List.repeat 5
+
         size = { width = 800, height = 800 }
         (timer, timerCmd) = Timer.init
         model = { board = newBoard, windowSize = size, moves = 0, timer = timer }
