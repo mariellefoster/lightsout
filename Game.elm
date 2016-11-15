@@ -8,12 +8,6 @@ import Process
 import Timer
 import Board
 
---To Do--
-
-    -- welcome page
-
-    -- design levels
-
 main =
     App.program
         { init = init -----values----
