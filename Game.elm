@@ -10,12 +10,6 @@ import Process
 import Timer
 import Board
 
-
---To Do--
--- welcome page
--- design levels
-
-
 main =
     Html.program
         { init = init -----values----
